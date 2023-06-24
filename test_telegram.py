@@ -4,6 +4,7 @@ from juego import *                             #Importamos el juego del ahorcad
 from fun_mod import *                           #Importamos las funciones de moderación
 import telebot                                  #Para manejar la API de Telegram
 import threading                                #Para el manejo de hilos
+import random                                   #Para obtener números aleatorios
 #from telebot.types import ReplyKeyboardMarkup   #botones y demás
 from telebot.types import ForceReply            #Para responder a un mensaje
 #import os   #para borrar lineas en un fichero
@@ -28,27 +29,30 @@ cursor = conn.cursor()
 @bot.message_handler(commands=["start", "iniciar"])
 def cmd_start(message):
     '''Da la bienvenida al usuario del bot'''
-    if MY_CHAT_ID == message.chat.id:
-        text = '<b><u>HOLA!</u></b>' + '\n'
-        text += 'Soy tu bot de cumpleaños, añade el tuyo para felicitarte.'        
-        bot.send_message(message.chat.id, text, parse_mode='html')
+    text = ''
+    if message.from_user.username == 'None':
+        text += '<b><u>HOLA! ' + message.from_user.first_name + '</u></b>' + '\n'
+        text += 'Soy tu bot multifunción, puedo administrar grupos, felicitarte en tu cumpleaños y jugar al ahorcado. Para saber todo sobre mis comandos introduce /help o /ayuda. Por favor, es importate para ello que añadas un nombre de usuario en tu perfil, gracias.'
+    else:
+        text += '<b><u>HOLA! @' + message.from_user.username + '</u></b>' + '\n'
+        text += 'Soy tu bot multifunción, puedo administrar grupos, felicitarte en tu cumpleaños y jugar al ahorcado. Para saber todo sobre mis comandos introduce /help o /ayuda.'
+    bot.send_message(message.chat.id, text, parse_mode='html')
     
 @bot.message_handler(commands=["help", "ayuda"])
 def cmd_help(message):
     '''Muestra la lista de comandos'''
-    if MY_CHAT_ID == message.chat.id:
-        text = '<b><u>AYUDA</u></b>' + '\n'
-        text += 'Estos son los comandos disponibles:' + '\n'
-        text += '✰ /start o /iniciar → da la bienvenida' + '\n'
-        text += '✰ /help o /ayuda → muestra lista de comandos disponibles' + '\n'
-        text += '✰ /add o /nuevo → añade cumpleaños' + '\n'
-        text += '✰ /view o /ver → muestra el cumpleaños del usuario' + '\n'
-        text += '✰ /update o /actualizar → actualiza el cumpleaños del usuario' + '\n'
-        text += '✰ /delete o /borrar → borrar un cumpleaños' + '\n'
-        text += '✰ /test o /probar → ejemplo del mensaje de cumpleaños' + '\n'
-        text += '✰ /warnings o /avisos → muestra los avisos que tiene un usuario' + '\n'
-        text += '✰ /hangman o /ahorcado → jugar al juego del ahorcado' + '\n'
-        bot.send_message(message.chat.id, text, parse_mode='html')
+    text = '<b><u>AYUDA</u></b>' + '\n'
+    text += 'Estos son los comandos disponibles:' + '\n'
+    text += '✰ /start o /iniciar → da la bienvenida' + '\n'
+    text += '✰ /help o /ayuda → muestra lista de comandos disponibles' + '\n'
+    text += '✰ /add o /nuevo → añade cumpleaños' + '\n'
+    text += '✰ /view o /ver → muestra el cumpleaños del usuario' + '\n'
+    text += '✰ /update o /actualizar → actualiza el cumpleaños del usuario' + '\n'
+    text += '✰ /delete o /borrar → borrar un cumpleaños' + '\n'
+    text += '✰ /test o /probar → ejemplo del mensaje de cumpleaños' + '\n'
+    text += '✰ /warnings o /avisos → muestra los avisos que tiene un usuario' + '\n'
+    text += '✰ /hangman o /ahorcado → jugar al juego del ahorcado' + '\n'
+    bot.send_message(message.chat.id, text, parse_mode='html')
 
 @bot.message_handler(commands=["add", "nuevo"])    
 def cmd_add(message):
@@ -58,19 +62,19 @@ def cmd_add(message):
     msg = bot.send_message(message.chat.id, "¿De qué usuario quieres añadir el cumpleaños?\nIndica el nombre con su @.", reply_markup=markup)
     bot.register_next_step_handler(msg, preguntar_zona_horaria, bot, entrada, conn, cursor)   
     
-@bot.message_handler(commands=["view", "ver"])    
-def cmd_view(message):
-    '''Muestra cuando es el cumpleaños de un usuario'''
-    markup = ForceReply()
-    msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver cuándo es su cumpleaños?\nIndica el nombre con su @.", reply_markup=markup)
-    bot.register_next_step_handler(msg, mostrar_cumple, bot, conn, cursor)    
-
 @bot.message_handler(commands=["update", "actualizar"])
 def cmd_update(message):
     '''Actualizar un cumpleaños'''
     markup = ForceReply()
     msg =bot.send_message(message.chat.id, "¿De qué usuario quieres actualizar el cumpleaños?\nIndica el nombre con su @.", reply_markup=markup)
-    bot.register_next_step_handler(msg, actualizar_cumple, bot, conn, cursor)    
+    bot.register_next_step_handler(msg, actualizar_cumple, bot, conn, cursor)   
+
+@bot.message_handler(commands=["view", "ver"])    
+def cmd_view(message):
+    '''Muestra cuando es el cumpleaños de un usuario'''
+    markup = ForceReply()
+    msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver cuándo es su cumpleaños?\nIndica el nombre con su @.", reply_markup=markup)
+    bot.register_next_step_handler(msg, mostrar_cumple, bot, conn, cursor)     
 
 @bot.message_handler(commands=["delete", "borrar"])    
 def cmd_delete(message):
@@ -90,13 +94,38 @@ def cmd_test(message):
 def cmd_warnings(message):
     '''Mirar avisos de un usuario'''
     markup = ForceReply()
-    msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver cuántos avisos tiene?", reply_markup=markup)
+    msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver cuántos avisos tiene?\nIndica el nombre con su @", reply_markup=markup)
     bot.register_next_step_handler(msg, mostrar_avisos, bot, conn, cursor) 
+    
+@bot.message_handler(commands=["unban", "desbanear"])
+def cmd_unban(message):
+    '''Desbanear un usuario'''
+    if bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]:
+        markup = ForceReply()
+        msg = bot.send_message(message.chat.id, "¿A que usuario quieres desbanear?\nIndica el nombre con su @", reply_markup=markup)
+        bot.register_next_step_handler(msg, unban_user, bot, conn, cursor) 
+    else:
+        bot.send_message(message.chat.id, "Comando solo disponible para los administradores del grupo.")
     
 @bot.message_handler(commands=["ahorcado", "hangman"]) 
 def cmd_hangman(message):
     '''Iniciando juego del ahorcado'''
-    jugar(bot, conn, cursor)
+    query = "SELECT count(id) FROM hangmanwords"
+    cursor.execute(query)
+    results = cursor.fetchall()
+    print(results)
+    idPalabraElegida = random.randint(1, results[0][0]+1)
+    query = "SELECT * FROM hangmanwords WHERE id = " + str(idPalabraElegida)
+    cursor.execute(query)
+    results = cursor.fetchall()
+    print(results)
+    palabraElegida = results[0][1].lower()
+    print(palabraElegida)
+    vidas = 6
+    letrasDichas = ''
+    text = ''
+    textoInicial(bot, message)
+    jugar(text, vidas, palabraElegida, letrasDichas, bot, message, conn, cursor)
 
 #Responder a los mensajes que no son comandos
 '''@bot.message_handler(content_types=["text", "audio", "document", "photo", "sticker", "video", "video_note", 
@@ -116,25 +145,31 @@ def bot_mensajes(message):
 def bot_wellcome(message):
     '''Da la bienvenida a los nuevos miembros'''
     text = ''
-    if message.new_chat_members[0].username == 'None':
-        text += '<b><u>BIENVENID@ ' + message.new_chat_members[0].first_name + '</u></b>' + '\n'
-        text += 'Por favor, añade un nombre de usuario a tu cuenta y avisa a un administrador cuando lo tengas para poder añadir tu cumpleaños en el bot, respeta a los miembros del grupo, crea un buen ambiente y modera tu lenguaje'
-    else:
-        text += '<b><u>BIENVENID@ @' + message.new_chat_members[0].username + '</u></b>' + '\n'
-        text += 'Por favor, respeta a los miembros del grupo, crea un buen ambiente, modera tu lenguaje y no olvides añadir tu cumpleaños en el bot con el comando /nuevo o /add!'   
-        #LE AÑADIMOS A LA BASE DE DATOS EN LA TABLA DE USUARIOS AUTORIZADOS (USERNAME)
-        add_db (message, conn, cursor)
-    bot.send_message(message.chat.id, text, parse_mode='html')
+    newMembers = message.new_chat_members
+    for member in newMembers:
+        if member.username == 'None':
+            text += '<b><u>BIENVENID@ ' + member.first_name + '</u></b>' + '\n'
+            text += 'Por favor, añade un nombre de usuario a tu cuenta y avisa a un administrador cuando lo tengas para poder añadir tu cumpleaños, respeta a los miembros del grupo, crea un buen ambiente y modera tu lenguaje.'
+        else:
+            text += '<b><u>BIENVENID@ @' + member.username + '</u></b>' + '\n'
+            text += 'Por favor, respeta a los miembros del grupo, crea un buen ambiente, modera tu lenguaje y no olvides añadir tu cumpleaños con el comando /nuevo o /add!'   
+            #LE AÑADIMOS A LA BASE DE DATOS EN LA TABLA DE USUARIOS AUTORIZADOS (USERNAME)
+            add_db (member, conn, cursor)
+            '''#Por si hubiera estado baneado anteriormente
+            query = "DELETE FROM bannedusers WHERE name like '@" + member.username + "'"
+            cursor.execute(query)
+            conn.commit() #Importante para que se guarden los cambios de la consulta.'''
+        bot.send_message(message.chat.id, text, parse_mode='html')
     
 @bot.message_handler(content_types=["left_chat_member"])
 def bot_goodbye(message):
     '''Despide a los miembros que abandonan el grupo''' 
     #NO MANDAMOS MENSAJE PORQUE NO LO VAN A LEER PERO SI QUE LES BORRAMOS DE LA BASE DE DATOS
-    tabla = 'username'
-    delete_db (message, tabla, conn, cursor)
-    tabla = 'bannedusers'
+    tabla = 'usernames'
     delete_db (message, tabla, conn, cursor)
     tabla = 'birthdaydata'
+    delete_db (message, tabla, conn, cursor)
+    tabla = 'ranking'
     delete_db (message, tabla, conn, cursor)
 
 def recibir_mensajes():
