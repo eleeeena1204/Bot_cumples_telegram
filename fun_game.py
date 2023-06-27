@@ -1,12 +1,11 @@
-#Ahorcado
-import telebot  #para manejar la API de Telegram
-from telebot.types import ForceReply    #citar un mensaje
+import telebot                                  #Para manejar la API de Telegram
+from telebot.types import ForceReply            #Para forzar respuestas a mensajes
 
-def imprimirAhorcado(vidas):
+def printHangman(lives):
     '''Dibujar la típica plantilla del juego'''
     text = '_____' + '\n'
     text += '|        |' + '\n'
-    match vidas: 
+    match lives: 
         case 6:        
             text += '|' + '\n'
             text += '|' + '\n'
@@ -38,7 +37,7 @@ def imprimirAhorcado(vidas):
     text += '| _____' + '\n'
     return text
         
-def textoInicial(bot, message):
+def initialText(bot, message):
     '''Mostrar el texto y la foto inicial del juego'''
     photo = open("ahorcado.png", "rb")
     text = '<b><u>Bienvendi@ al juego del Ahorcado o Hangman.</u></b>' + '\n'
@@ -46,29 +45,29 @@ def textoInicial(bot, message):
     bot.send_photo(message.from_user.id, photo, text, parse_mode='html')
 
 #MAIN
-def jugar(text, vidas, palabraElegida, letrasDichas, bot, message, conn, cursor):
+def play(text, lives, selectedWord, inputLetters, bot, message, conn, cursor):
     '''Función para el funcionamiento del juego'''
-    if vidas == 0:
+    if lives == 0:
         text = '✰ Lo siento, has perdido 😥' + '\n' + '\n'
-        text += imprimirAhorcado(vidas) + '\n'
-        text += '✰ La palabra era: ' + palabraElegida 
-        msg = bot.send_message(message.from_user.id, text, parse_mode='html')
+        text += printHangman(lives) + '\n'
+        text += '✰ La palabra era: ' + selectedWord 
+        bot.send_message(message.from_user.id, text)
     else:  
-        fallas = 0
-        text += imprimirAhorcado(vidas) + '\n'
+        fault = 0
+        text += printHangman(lives) + '\n'
         text += '✰ Palabra a adivinar: '
-        for letra in palabraElegida:
-            if letra in letrasDichas:
+        for letra in selectedWord:
+            if letra in inputLetters:
                 text += letra
             else:
                 text += '_ '
-                fallas += 1
-        if fallas == 0:
+                fault += 1
+        if fault == 0:
             text = '✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨' + '\n'
             text += '✨   🥳 FELICIDADES, HAS GANADO 🥳   ✨' + '\n'
             text += '✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨'
-            msg = bot.send_message(message.from_user.id, text, parse_mode='html')
-            query = "SELECT * FROM ranking WHERE id = " + message.from_user.id
+            bot.send_message(message.from_user.id, text)
+            query = "SELECT * FROM ranking WHERE id = " + str(message.from_user.id)
             cursor.execute(query)
             results = cursor.fetchall()
             if len(results) == 0:
@@ -80,22 +79,22 @@ def jugar(text, vidas, palabraElegida, letrasDichas, bot, message, conn, cursor)
                 cursor.execute(query)
                 conn.commit()
         else:
-            text += '\n' + '✰ Letras ya introducidas: ' + letrasDichas + '\n'
-            msg = bot.send_message(message.from_user.id, text, parse_mode='html')
+            text += '\n' + '✰ Letras ya introducidas: ' + inputLetters + '\n'
+            bot.send_message(message.from_user.id, text)
             markup = ForceReply()
-            letraIntroducida = bot.send_message(message.from_user.id, "✰ Introduce una letra: ", reply_markup=markup)
-            bot.register_next_step_handler(letraIntroducida, nuevaLetra, vidas, palabraElegida, letrasDichas, bot, message, conn, cursor) 
+            newLetter = bot.send_message(message.from_user.id, "✰ Introduce una letra: ", reply_markup=markup)
+            bot.register_next_step_handler(newLetter, add_new_letter, lives, selectedWord, inputLetters, bot, message, conn, cursor) 
 
-def nuevaLetra(letraIntroducida, vidas, palabraElegida, letrasDichas, bot, message, conn, cursor):
+def add_new_letter(newLetter, lives, selectedWord, inputLetters, bot, message, conn, cursor):
     '''Función para añadir iteración y seguir jugando'''
     text = ''
-    if letraIntroducida.text not in letrasDichas:
-        letrasDichas += letraIntroducida.text + ", "
-        if letraIntroducida.text not in palabraElegida:
-            vidas -= 1
-            text += '✰ La letra no está en la palabra. Te quedan ' + str(vidas) + ' intentos.' + '\n'
+    if newLetter.text.lower() not in inputLetters:
+        inputLetters += newLetter.text.lower() + ", "
+        if newLetter.text.lower() not in selectedWord:
+            lives -= 1
+            text += '✰ La letra no está en la palabra. Te quedan ' + str(lives) + ' intentos.' + '\n'
         else:
             text += '✰ Letra correcta!' + '\n'
     else:
         text += '✰ Letra ya mencionada!' + '\n'    
-    jugar(text, vidas, palabraElegida, letrasDichas, bot, message.from_user.id, conn, cursor)
+    play(text, lives, selectedWord, inputLetters, bot, message, conn, cursor)
