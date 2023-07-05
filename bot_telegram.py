@@ -1,5 +1,5 @@
 from config import *                            #Importamos el token y los id de grupo
-from fun_cumples import *                       #Importamos las funciones de los cumpleños
+from fun_birthdays import *                       #Importamos las funciones de los cumpleños
 from fun_game import *                             #Importamos el juego del ahorcado
 from fun_mod import *                           #Importamos las funciones de moderación
 import telebot                                  #Para manejar la API de Telegram
@@ -69,7 +69,7 @@ def cmd_add(message):
     input = []
     markup = ForceReply()
     msg = bot.send_message(message.chat.id, "¿De qué usuario quieres añadir el cumpleaños?\nIndica el nombre con su @.", reply_markup=markup)
-    bot.register_next_step_handler(msg, ask_timezone, bot, input, conn, cursor)   
+    bot.register_next_step_handler(msg, ask_date, bot, input, conn, cursor)   
 
 @bot.message_handler(commands=["view", "ver"])    
 def cmd_view(message):
@@ -82,7 +82,7 @@ def cmd_view(message):
 def cmd_update(message):
     '''Actualizar un cumpleaños'''
     markup = ForceReply()
-    msg =bot.send_message(message.chat.id, "¿De qué usuario quieres actualizar el cumpleaños?\nIndica el nombre con su @.", reply_markup=markup)
+    msg = bot.send_message(message.chat.id, "¿De qué usuario quieres actualizar el cumpleaños?\nIndica el nombre con su @.", reply_markup=markup)
     bot.register_next_step_handler(msg, update_birthday, bot, conn, cursor)   
 
 @bot.message_handler(commands=["delete", "borrar"])    
@@ -130,8 +130,8 @@ def cmd_hangman(message):
     lives = 6
     inputLetters = ''
     text = ''
-    initialText(bot, message)
-    play(text, lives, selectedWord, inputLetters, bot, message, conn, cursor)
+    initial_text(bot, message)
+    play_hangman(text, lives, selectedWord, inputLetters, bot, message, conn, cursor)
     
 @bot.message_handler(commands=["ranking", "clasificacion"])
 def cmd_ranking(message):
@@ -174,7 +174,7 @@ def bot_wellcome(message):
             #Por si hubiera estado baneado anteriormente
             query = "DELETE FROM bannedusers WHERE id = " + str(member.id)
             cursor.execute(query)
-            conn.commit() #Importante para que se guarden los cambios de la consulta.
+            conn.commit()
         bot.send_message(message.chat.id, text, parse_mode='html')
     
 @bot.message_handler(content_types=["left_chat_member"])
@@ -224,10 +224,7 @@ if __name__ == '__main__':
     bot_thread = threading.Thread(name = "bot_thread", target = receive_messages)
     bot_thread.start()
     print("Bot iniciado")
-    startDate = datetime.now().strftime("%d/%m")
+    startDate = (datetime.now() - timedelta(days = 1)).strftime("%d/%m")
     birthdays_thread = threading.Thread(name = "birthdays_thread", target = verify_birthday, args = (startDate, bot, conn, cursor))
     birthdays_thread.start()
     print("Hilo cumples iniciado")  
-    query = "ALTER TABLE birthdaydata DROP COLUMN timezone"
-    cursor.execute(query)
-    conn.commit()

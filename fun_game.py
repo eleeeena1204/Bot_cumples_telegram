@@ -1,7 +1,7 @@
 import telebot                                  #Para manejar la API de Telegram
 from telebot.types import ForceReply            #Para forzar respuestas a mensajes
 
-def printHangman(lives):
+def print_hangman(lives):
     '''Dibujar la típica plantilla del juego'''
     text = '_____' + '\n'
     text += '|        |' + '\n'
@@ -37,7 +37,7 @@ def printHangman(lives):
     text += '| _____' + '\n'
     return text
         
-def initialText(bot, message):
+def initial_text(bot, message):
     '''Mostrar el texto y la foto inicial del juego'''
     photo = open("ahorcado.png", "rb")
     text = '<b><u>Bienvendi@ al juego del Ahorcado o Hangman.</u></b>' + '\n'
@@ -45,16 +45,16 @@ def initialText(bot, message):
     bot.send_photo(message.from_user.id, photo, text, parse_mode='html')
 
 #MAIN
-def play(text, lives, selectedWord, inputLetters, bot, message, conn, cursor):
+def play_hangman(text, lives, selectedWord, inputLetters, bot, message, conn, cursor):
     '''Función para el funcionamiento del juego'''
     if lives == 0:
         text = '✰ Lo siento, has perdido 😥' + '\n' + '\n'
-        text += printHangman(lives) + '\n'
+        text += print_hangman(lives) + '\n'
         text += '✰ La palabra era: ' + selectedWord 
         bot.send_message(message.from_user.id, text)
     else:  
         fault = 0
-        text += printHangman(lives) + '\n'
+        text += print_hangman(lives) + '\n'
         text += '✰ Palabra a adivinar: '
         for letra in selectedWord:
             if letra in inputLetters:
@@ -97,4 +97,4 @@ def add_new_letter(newLetter, lives, selectedWord, inputLetters, bot, message, c
             text += '✰ Letra correcta!' + '\n'
     else:
         text += '✰ Letra ya mencionada!' + '\n'    
-    play(text, lives, selectedWord, inputLetters, bot, message, conn, cursor)
+    play_hangman(text, lives, selectedWord, inputLetters, bot, message, conn, cursor)
