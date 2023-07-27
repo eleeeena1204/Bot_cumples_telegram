@@ -12,27 +12,27 @@ def print_hangman(lives):
             text += '|' + '\n'
             text += '|' + '\n'
     elif lives == 5:
-            text += '|     😵' + '\n'
+            text += '|       😵' + '\n'
             text += '|' + '\n'
             text += '|' + '\n'
     elif lives == 4:
-            text += '|      😵' + '\n'
+            text += '|       😵' + '\n'
             text += '|       |' + '\n'
             text += '|' + '\n'
     elif lives == 3:
-            text += '|      😵' + '\n'
+            text += '|       😵' + '\n'
             text += '|      /|' + '\n'
             text += '|' + '\n'
     elif lives == 2:
-            text += '|      😵' + '\n'
+            text += '|       😵' + '\n'
             text += '|      /|\ ' + '\n'
             text += '|' + '\n'
     elif lives == 1:
-            text += '|      😵' + '\n'
+            text += '|       😵' + '\n'
             text += '|      /|\ ' + '\n'
             text += '|      /' + '\n'
     elif lives == 0:
-            text += '|      😵' + '\n'
+            text += '|       😵' + '\n'
             text += '|      /|\ ' + '\n'
             text += '|      / \ ' + '\n'
     text += '| _____' + '\n'
@@ -50,15 +50,15 @@ def initial_text(bot, message):
 def play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message):
     '''Función para el funcionamiento del juego'''
     if lives == 0:
-        text = '✰ Lo siento, has perdido 😥' + '\n\n'
+        text = '? Lo siento, has perdido ??' + '\n\n'
         text += print_hangman(lives) + '\n'
-        text += '✰ La palabra era: ' + selectedWord
+        text += '? La palabra era: ' + selectedWord
         bot.send_message(message.from_user.id, text)
     else:
         fault = 0
         text += print_hangman(lives) + '\n'
-        text += '✰ Pista: ' + clue + '\n'
-        text += '✰ Palabra oculta: '
+        text += '? Pista: ' + clue + '\n'
+        text += '? Palabra oculta: '
         for letra in selectedWord:
             if letra in inputLetters:
                 text += letra
@@ -66,8 +66,8 @@ def play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message):
                 text += '_ '
                 fault += 1
         if fault == 0:
-            text = '✨🥳 FELICIDADES, HAS GANADO 🥳✨' + '\n'
-            text += '✰ La palabra era: ' + selectedWord + '\n'
+            text = '??? FELICIDADES, HAS GANADO ???' + '\n'
+            text += '? La palabra era: ' + selectedWord + '\n'
             bot.send_message(message.from_user.id, text)
             user = ""
             if message.from_user.username == None:
@@ -90,8 +90,8 @@ def play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message):
             cursor.close()
             conn.close()
         else:
-            text += '\n' + '✰ Letras ya introducidas: ' + inputLetters + '\n'
-            text += '✰ Introduce una letra: '
+            text += '\n' + '? Letras ya introducidas: ' + inputLetters + '\n'
+            text += '? Introduce una letra: '
             newLetter = bot.send_message(message.from_user.id, text)
             bot.register_next_step_handler(newLetter, add_new_letter, lives, selectedWord, clue, inputLetters, bot, message)
 
@@ -99,26 +99,19 @@ def play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message):
 def add_new_letter(newLetter, lives, selectedWord, clue, inputLetters, bot, message):
     '''Función para añadir iteración y seguir jugando'''
     text = ''
-    if newLetter.content_type == 'text':
+    if message.content_type == 'text':
         if len(newLetter.text) == 1:
             if newLetter.text.lower() not in inputLetters:
                 inputLetters += newLetter.text.lower() + ", "
                 if newLetter.text.lower() not in selectedWord:
                     lives -= 1
-                    text += '✰ La letra no está en la palabra. Te quedan ' + str(lives) + ' intentos.' + '\n'
-                    play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message)
+                    text += '? La letra no está en la palabra. Te quedan ' + str(lives) + ' intentos.' + '\n'
                 else:
-                    text += '✰ Letra correcta!' + '\n'
-                    play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message)
+                    text += '? Letra correcta!' + '\n'
             else:
-                text += '✰ Letra repetida!' + '\n'
-                play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message)
+                text += '? Letra repetida!' + '\n'
         else:
-            if newLetter.text.lower() == "salir" or newLetter.text.lower() == "exit":
-                bot.send_message(message.chat.id, "Se ha cancelado la partida.")
-            else:
-                text += '✰ Por favor, solo una letra en cada mensaje.' + '\n'
-                play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message)
+            text += '? Por favor, solo una letra en cada mensaje.' + '\n'
     else:
-        text += '✰ Vaya, esto no es lo que esperaba...'
-        play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message)
+        text += '? Vaya, esto no es lo que esperaba...'
+    play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message)

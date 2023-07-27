@@ -6,36 +6,27 @@ from fun_mod import *                           #Importamos las funciones de mod
 import telebot                                  #Para manejar la API de Telegram
 import threading                                #Para el manejo de hilos
 import random                                   #Para obtener números aleatorios
-from telebot.types import ForceReply            #Para responder a un mensaje
 from telebot.types import InlineKeyboardMarkup  #Para crear botones inline
 from telebot.types import InlineKeyboardButton  #Para definir botones inline
-import pickle                                   #Para serializar objetos para los botones inline
-import mysql.connector                          #Para la base de datos
 
 #Instanciamos el bot
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
-
-#Establecer la conexión con la base de datos
-conn = mysql.connector.connect(
-    host="nearl-dev.com",
-    port="3306",
-    user="root",
-    password="i#G1zF6402e#",
-    database="bot_telegram"
-)
-cursor = conn.cursor()
 
 #Responder a los comandos
 @bot.message_handler(commands=["start", "iniciar"])
 def cmd_start(message):
     '''Mensaje de intriducción y presentación del bot'''
     text = ""
-    if message.from_user.username == None:
-        text += "<b><u>Hola, " + message.from_user.first_name + "!</u></b>\n\n"
-        text += "Soy tu bot multifunción, puedo administrar grupos, felicitarte en tu cumpleaños o recordarte el de tus amigos y jugar al ahorcado.\n\nPara saber todo sobre mis comandos introduce /help o /ayuda.\n\nPor favor, es importate para ello que añadas un nombre de usuario en tu perfil, gracias."
+    if message.chat.type == "private":
+        if message.from_user.username == None:
+            text += "<b><u>Hola, " + message.from_user.first_name + "!</u></b>\n\n"
+            text += "Soy tu bot multifunción. Puedo administrar grupos, felicitarte en tu cumpleaños o recordarte el de tus amigos y jugar al ahorcado.\n\nPara saber todo sobre mis comandos, introduce /help o /ayuda.\n\nPor favor, es importate para ello que añadas un nombre de usuario en tu perfil. Gracias."
+        else:
+            text += "<b><u>Hola, @" + message.from_user.username + "!</u></b>\n\n"
+            text += "Soy tu bot multifunción. Puedo administrar grupos, felicitarte en tu cumpleaños o recordarte el de tus amigos y jugar al ahorcado.\n\nPara saber todo sobre mis comandos introduce /help o /ayuda."
     else:
-        text += "<b><u>Hola, @" + message.from_user.username + "!</u></b>\n\n"
-        text += "Soy tu bot multifunción, puedo administrar grupos, felicitarte en tu cumpleaños o recordarte el de tus amigos y jugar al ahorcado.\n\nPara saber todo sobre mis comandos introduce /help o /ayuda."
+        text += "<b><u>Hola!</u></b>\n\n"
+        text += "Soy el bot multifunción de este grupo. Puedo administrar el grupo, felicitar los cumpleaños y jugar al ahorcado.\n\nPara saber todo sobre mis comandos introduce /help o /ayuda.\n\nPor favor, es importate para ello que todos añadan un nombre de usuario en su perfil e introduzcan el comando /register o /registrar para darse de alta en mi base de datos. Gracias."
     bot.send_message(message.chat.id, text, parse_mode = "html")
 
 @bot.message_handler(commands=["help", "ayuda"])
@@ -44,9 +35,9 @@ def cmd_help(message):
     text = "<b><u>AYUDA</u></b>\n"
     text += "Estos son los comandos disponibles:\n"
     text += "✰ /start o /iniciar → da la bienvenida\n"
-    text += "✰ /help o /ayuda → muestra lista de comandos disponibles\n"
+    text += "✰ /help o /ayuda → muestra la lista de comandos disponibles\n"
     text += "✰ /register o /registrar → registra un nuevo nombre de usuario en la base de datos\n"
-    text += "✰ /config o /configurar → configurar el texto y la foto del mensaje de cumpleaños\n"
+    text += "✰ /config o /configurar → configura el texto y la foto del mensaje de felicitación o de alerta\n"
     text += "✰ /add o /nuevo → añade cumpleaños\n"
     text += "✰ /view o /ver → muestra el cumpleaños del usuario\n"
     text += "✰ /update o /actualizar → actualiza el cumpleaños del usuario\n"
@@ -62,199 +53,269 @@ def cmd_help(message):
 def cmd_register(message):
     '''Añadir un username por un admin en la base de datos'''
     if message.chat.type == "private":
-        bot.send_message(message.chat.id, "Este comando es para uso dentro de un grupo.")
+        bot.send_message(message.chat.id, "Este comando solo es para uso dentro de un grupo.")
     else:
         if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
-            markup = ForceReply()
-            msg = bot.send_message(message.chat.id, "¿A que usuario quieres registrar?\nIndica el nombre de usuario con su @.", reply_markup = markup)
-            bot.register_next_step_handler(msg, register_user, bot, conn, cursor)
+            msg = bot.send_message(message.chat.id, "¿A qué usuario quieres registrar?\n\nIndica el nombre de usuario con su @.")
+            bot.register_next_step_handler(msg, register_user, bot)
         else:
             if message.from_user.username == None:
                 bot.send_message(message.chat.id, "Para usar este comando necesitas añadir un nombre de usuario en tu perfil.")
             else:
-                register_user(message, bot, conn, cursor)
+                register_user(message, bot)
 
 @bot.message_handler(commands=["config", "configurar"])
 def cmd_config(message):
     '''Configurar la foto y el mensaje de felicitación'''
-    markup = ForceReply()
-    msg = bot.send_message(message.chat.id, "Puedes configurar el mensaje y la foto del mensaje que se mostrará cuando felicite un cumpleaños.\n\n¿Quieres personalizar la foto o el texto?\n\nExcribe 'foto' o 'texto'.", reply_markup = markup)
-    bot.register_next_step_handler(msg, config, bot, conn, cursor)
+    if message.chat.type == "private":
+        bot.send_message(message.chat.id, "Este comando solo es para uso dentro de un grupo.")
+    else:
+        if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+            msg = bot.send_message(message.chat.id, "Puedes configurar el mensaje y la foto del mensaje que se mostrará cuando envíe el mensaje de felicitación o de alerta.\n\n¿Quieres personalizar la foto o el texto?\n\nExcribe 'foto' o 'texto'.\n\nPara cancelar, escribe 'salir' o 'exit'.")
+            bot.register_next_step_handler(msg, config, bot)
+        else:
+            bot.send_message(message.chat.id, "Comando solo disponible para los administradores.")
 
 @bot.message_handler(commands=["add", "nuevo"])
 def cmd_add(message):
     '''Añadimos un nuevo cumpleaños'''
     input = []
-    markup = ForceReply()
     if message.chat.type == "private":
-        msg = bot.send_message(message.chat.id, "Al ser un chat privado, actuaré en modo de alertas personales mediante este chat.\n\n¿De quién quieres que guarde el cumpleaños?", reply_markup = markup)
+        msg = bot.send_message(message.chat.id, "Al ser un chat privado, actuaré en modo de alertas personales mediante este chat.\n\n¿De quién quieres que guarde el cumpleaños?")
+        bot.register_next_step_handler(msg, ask_date, bot, input)
     else:
-        msg = bot.send_message(message.chat.id, "¿De qué usuario quieres añadir el cumpleaños?\n\nIndica el nombre de usuario con su @.", reply_markup = markup)
-    bot.register_next_step_handler(msg, ask_date, bot, input, conn, cursor)
+        if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+            msg = bot.send_message(message.chat.id, "¿De qué usuario quieres añadir el cumpleaños?\n\nIndica el nombre de usuario con su @.")
+            bot.register_next_step_handler(msg, ask_date, bot, input)
+        else:
+            if message.from_user.username == None:
+                bot.send_message(message.chat.id, "Para usar este comando necesitas añadir un nombre de usuario en tu perfil.")
+            else:
+                #El usuario está en el grupo, pero puede que no esté dado de alta en la base de datos porque no haya hecho el /register
+                conn = connect_db()
+                cursor = conn.cursor()
+                query = "SELECT * FROM usernames WHERE name like '@" + message.from_user.username + "' and chatId = " + str(message.chat.id)
+                cursor.execute(query)
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                if len(results) == 0:
+                    user = "@" + message.from_user.username
+                    add_db (user, message.chat.id)
+                conn = connect_db()
+                cursor = conn.cursor()
+                query = "SELECT * FROM birthdaydata WHERE name like '@" + message.from_user.username + "' and chatId = " + str(message.chat.id)
+                cursor.execute(query)
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                if len(results) == 0:
+                    user = "@" + message.from_user.username
+                    input.append(user)
+                    msg = bot.send_message(message.chat.id, "¿Cuándo es tu cumpleaños?\n\nIndícalo en formato DD/MM.")
+                    bot.register_next_step_handler(msg, new_birthday, bot, input)
+                else:
+                    bot.send_message(message.chat.id, "Ya tienes tu cumpleaños registrado.\n\nPara verlo, usa el comando /view o /ver.\n\nPara cambiarlo, usa el comando /update o /configurar.")
 
 @bot.message_handler(commands=["view", "ver"])
 def cmd_view(message):
     '''Muestra cuando es el cumpleaños de un usuario'''
-    markup = ForceReply()
     if message.chat.type == "private":
-        msg = bot.send_message(message.chat.id, "¿De quién quieres ver el cumpleaños?\n\nDime el nombre con el que lo guardaste.\n\nSi quieres ver la lista completa introduce 'todos'.", reply_markup = markup)
+        msg = bot.send_message(message.chat.id, "¿De quién quieres ver el cumpleaños?\n\nDime el nombre con el que lo guardaste.\n\nSi quieres ver la lista completa, introduce 'todos'.")
     else:
-        msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver cuándo es su cumpleaños?\n\nIndica el nombre de usuario con su @.\n\nSi quieres ver la lista completa introduce 'todos'.", reply_markup = markup)
-    bot.register_next_step_handler(msg, show_birthday, bot, conn, cursor)
+        msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver cuándo es su cumpleaños?\n\nIndica el nombre de usuario con su @.\n\nSi quieres ver la lista completa introduce 'todos'.")
+    bot.register_next_step_handler(msg, show_birthday, bot)
 
 @bot.message_handler(commands=["update", "actualizar"])
 def cmd_update(message):
     '''Actualizar un cumpleaños'''
-    markup = ForceReply()
     if message.chat.type == "private":
-        msg = bot.send_message(message.chat.id, "¿De quién quieres actualizar el cumpleaños?\n\nDime el nombre con el que lo guardaste.\n\nPuedes usar el comando /view o /ver e introduciendo 'todos' para ver una lista de los almacenados.", reply_markup = markup)
+        msg = bot.send_message(message.chat.id, "¿De quién quieres actualizar el cumpleaños?\n\nDime el nombre con el que lo guardaste.")
+        bot.register_next_step_handler(msg, update_birthday, bot)
     else:
-        msg = bot.send_message(message.chat.id, "¿De qué usuario quieres actualizar el cumpleaños?\n\nIndica el nombre de usuario con su @.\n\nPuedes usar el comando /view o /ver e introduciendo 'todos' para ver una lista de los almacenados.", reply_markup = markup)
-    bot.register_next_step_handler(msg, update_birthday, bot, conn, cursor)
+        if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+            msg = bot.send_message(message.chat.id, "¿De qué usuario quieres actualizar el cumpleaños?\n\nIndica el nombre de usuario con su @.")
+            bot.register_next_step_handler(msg, update_birthday, bot)
+        else:
+            if message.from_user.username == None:
+                bot.send_message(message.chat.id, "Para usar este comando necesitas añadir un nombre de usuario en tu perfil.")
+            else:
+                conn = connect_db()
+                cursor = conn.cursor()
+                query = "SELECT * FROM birthdaydata WHERE name like '@" + message.from_user.username + "' and chatId = " + str(message.chat.id)
+                cursor.execute(query)
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                if len(results) == 0:
+                    bot.send_message(message.chat.id, "Para usar este comando necesitas tener tu cumpleaños guardado.\n\nPuedes añadirlo con el comando /add o /nuevo.")
+                else:
+                    msg = bot.send_message(message.chat.id, "Por favor, introduce la fecha en formato DD/MM.")
+                    input = ["@" + message.from_user.username, "existe"]
+                    bot.register_next_step_handler(msg, new_birthday, bot, input)
 
 @bot.message_handler(commands=["delete", "borrar"])
 def cmd_delete(message):
     '''Borrar un cumpleaños'''
-    markup = ForceReply()
     if message.chat.type == "private":
-        msg = bot.send_message(message.chat.id, "¿De quién quieres borrar el cumpleaños?\n\nDime el nombre con el que lo guardaste.\n\nPuedes usar el comando /view o /ver e introduciendo 'todos' para ver una lista de los almacenados.", reply_markup = markup)
+        msg = bot.send_message(message.chat.id, "¿De quién quieres borrar el cumpleaños?\n\nDime el nombre con el que lo guardaste.")
+        bot.register_next_step_handler(msg, delete_birthday, bot)
     else:
-        msg = bot.send_message(message.chat.id, "¿De qué usuario quieres borrar el cumpleaños?\n\nIndica el nombre de usuario con su @.\n\nPuedes usar el comando /view o /ver e introduciendo 'todos' para ver una lista de los almacenados.", reply_markup = markup)
-    bot.register_next_step_handler(msg, delete_birthday, bot, conn, cursor)    
+        if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+            msg = bot.send_message(message.chat.id, "¿De qué usuario quieres borrar el cumpleaños?\n\nIndica el nombre de usuario con su @.")
+            bot.register_next_step_handler(msg, delete_birthday, bot)
+        else:
+            if message.from_user.username == None:
+                bot.send_message(message.chat.id, "Para usar este comando necesitas añadir un nombre de usuario en tu perfil.")
+            else:
+                conn = connect_db()
+                cursor = conn.cursor()
+                query = "SELECT * FROM birthdaydata WHERE name like '@" + message.from_user.username + "' and chatId = " + str(message.chat.id)
+                cursor.execute(query)
+                results = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                if len(results) == 0:
+                    bot.send_message(message.chat.id, "No tienes tu cumpleaños guardado, así que no hace falta borrarlo.")
+                else:
+                    delete_birthday(message, bot)
 
 @bot.message_handler(commands=["test", "probar"])    
 def cmd_test(message):
     '''Prueba el mensaje de cumpleaños'''
-    markup = ForceReply()
     if message.chat.type == "private":
-        msg = bot.send_message(message.chat.id, "¿De quién quieres ver un simulacro de cumpleaños?\n\nDime el nombre con el que lo guardaste.\n\nPuedes usar el comando /view o /ver e introduciendo 'todos' para ver una lista de los almacenados.", reply_markup = markup)
+        bot.send_message(message.chat.id, "Este comando solo es para uso dentro de un grupo.")
     else:
-        msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver un simulacro de cumpleaños?\n\nIndica el nombre de usuario con su @.\n\nPuedes usar el comando /view o /ver e introduciendo 'todos' para ver una lista de los almacenados.", reply_markup = markup)
-    bot.register_next_step_handler(msg, simulate_birthday, bot, conn, cursor)
+        if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+            msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver un simulacro de felicitación?\n\nIndica el nombre de usuario con su @.")
+            bot.register_next_step_handler(msg, simulate_birthday, bot)
+        else:
+            bot.send_message(message.chat.id, "Comando solo disponible para los administradores.")
 
 @bot.message_handler(commands=["warnings", "avisos"])
 def cmd_warnings(message):
     '''Mirar avisos de un usuario'''
     if message.chat.type == "private":
-        bot.send_message(message.chat.id, "Este comando es para uso dentro de un grupo.")
+        bot.send_message(message.chat.id, "Este comando solo es para uso dentro de un grupo.")
     else:
-        markup = ForceReply()
-        msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver cuántos avisos tiene?\n\nIndica el nombre de usuario con su @.\n\nSi quieres ver la lista completa introduce 'todos'.", reply_markup = markup)
-        bot.register_next_step_handler(msg, show_warnings, bot, conn, cursor)
+        if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+            msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver cuántos avisos tiene?\n\nIndica el nombre de usuario con su @.\n\nSi no tiene nombre de usuario, introduce su nombre principal.\n\nSi quieres ver la lista completa, introduce 'todos'.")
+            bot.register_next_step_handler(msg, show_warnings, bot)
+        else:
+            bot.send_message(message.chat.id, "Comando solo disponible para los administradores.")
 
 @bot.message_handler(commands=["unban", "desbanear"])
 def cmd_unban(message):
     '''Desbanear un usuario'''
     if message.chat.type == "private":
-        bot.send_message(message.chat.id, "Este comando es para uso dentro de un grupo.")
+        bot.send_message(message.chat.id, "Este comando solo es para uso dentro de un grupo.")
     else:
         if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
-            markup = ForceReply()
-            msg = bot.send_message(message.chat.id, "¿A que usuario quieres desbanear?\n\nIndica el nombre de usuario con su @.\n\nSi quieres ver la lista completa introduce 'todos'.", reply_markup = markup)
-            bot.register_next_step_handler(msg, unban_user, bot, conn, cursor)
+            msg = bot.send_message(message.chat.id, "¿A qué usuario quieres desbanear?\n\nIndica el nombre de usuario con su @.\n\nSi no tiene nombre de usuario, introduce su nombre principal.\n\nSi quieres ver la lista completa, introduce 'todos'.")
+            bot.register_next_step_handler(msg, unban_user, bot)
         else:
             bot.send_message(message.chat.id, "Comando solo disponible para los administradores del grupo.")
 
 @bot.message_handler(commands=["hangman", "ahorcado"])
 def cmd_hangman(message):
     '''Iniciando juego del ahorcado'''
+    conn = connect_db()
+    cursor = conn.cursor()
     query = "SELECT count(id) FROM hangmanwords"
     cursor.execute(query)
     results = cursor.fetchall()
-    idSelectedWord = random.randint(1, results[0][0]+1)
+    idSelectedWord = random.randint(1, results[0][0])
     query = "SELECT * FROM hangmanwords WHERE id = " + str(idSelectedWord)
     cursor.execute(query)
     results = cursor.fetchall()
+    cursor.close()
+    conn.close()
     selectedWord = results[0][1].lower()
+    clue = results [0][2]
     lives = 6
     inputLetters = ""
     text = ""
-    initial_text(bot, message)
-    play_hangman(text, lives, selectedWord, inputLetters, bot, message, conn, cursor)
+    try:
+        initial_text(bot, message)
+        play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message)
+    except:
+        bot.send_message(message.chat.id, "No tengo permiso para iniciar una conversación contigo.\n\nPor favor, escríbeme tu e introduce el comando en nuestro chat para jugar al ahorcado.")
 
 @bot.message_handler(commands=["ranking", "clasificacion"])
 def cmd_ranking(message):
     '''Muestra el top 5 del ranking del juego de manera global'''
+    conn = connect_db()
+    cursor = conn.cursor()
     query = "SELECT * FROM ranking ORDER BY score DESC LIMIT 5"
     cursor.execute(query)
     results = cursor.fetchall()
+    cursor.close()
+    conn.close()
     nums = ["🥇", "🥈", "🥉", "4. ","5. "]
     text = "<b><u>RANKING AHORCADO</u></b>" + "\n"
     for i in range(len(results)):
         text += "✰ " + nums[i] + " " + results[i][1] + " → " + str(results[i][2]) + "\n"
     bot.send_message(message.chat.id, text, parse_mode = "html")
 
-#Hacer listados con botones inline
-def show_pages(results, id, pag, mid):
-    '''Crea o edita un mensaje en la página'''
-    markup = InlineKeyboardMarkup()
-    b_prev = InlineKeyboardButton("⬅", callback_data = "prev")
-    b_next = InlineKeyboardButton("➡", callback_data = "next")
-    markup.row(b_prev, b_next)
-    start = pag * 10
-    end = start + 10
-    text = "<i><u><b>Resultados " + str(start + 1) + "-" + str(end) + " de " + str(len(results)) + "</b></u></i>\n\n"
-    for i in results[start:end]:
-        text += "✰ " + i[0] + " → " + i[1] + "\n"
-    if mid != None:
-        bot.edit_message_text(text, id, mid, reply_markup = markup, parse_mode = "html")
-    else:
-        res = bot.send_message(id, text, reply_markup = markup, parse_mode = "html")
-        mid = res.message_id
-        query = "SELECT * FROM pagesdata where id = " + str(id)
-        cursor.execute(query)
-        results2 = cursor.fetchall()
-        if len(results2) == 0:
-            query = "INSERT INTO pagesdata (id, page, list) VALUES (" + str(id) + ", 0, \"" + str(results) + "\")"
-            cursor.execute(query)
-            conn.commit()
-        else:
-            query = "UPDATE pagesdata SET page = 0, list = \"" + str(results) + "\" WHERE id = " + str(id)
-            cursor.execute(query)
-            conn.commit()
-    
+#Manejo botones inline
 @bot.callback_query_handler(func=lambda x:True)
 def answer_inline_buttons(call):
     cid = call.from_user.id
     mid = call.message.id
     if call.data == "prev":
         #Si estamos en la primera página
+        conn = connect_db()
+        cursor = conn.cursor()
         query = "SELECT * FROM pagesdata WHERE id = " + str(cid)
         cursor.execute(query)
         results = cursor.fetchall()
-        listAux = results[0][2].replace("[(", "").replace(")]", "").replace("'", "").split("), (")
-        list = []
-        for i in listAux:
-            iaux = i.split(", ")
-            list.append(tuple([iaux[0], iaux[1]]))
-        if results[0][1] == 0:
+        cursor.close()
+        conn.close()
+        if len(results) == 0 or results[0][1] == 0:
             bot.answer_callback_query(call.id, "Ya estás en la primera página")
         else:
             pages = results[0][1] - 1
+            conn = connect_db()
+            cursor = conn.cursor()
             query = "UPDATE pagesdata SET page = " + str(pages) + " WHERE id = " + str(cid)
             cursor.execute(query)
             conn.commit()
-            show_pages(list, cid, pages, mid)
-        return
+            query = "SELECT * FROM pagesdata WHERE id = " + str(cid)
+            cursor.execute(query)
+            results = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            show_pages(results, cid, mid, bot)
     elif call.data == "next":
         #Si ya estamos en la última página
+        conn = connect_db()
+        cursor = conn.cursor()
         query = "SELECT * FROM pagesdata WHERE id = " + str(cid)
         cursor.execute(query)
         results = cursor.fetchall()
-        listAux = results[0][2].replace("[(", "").replace(")]", "").replace("'", "").split("), (")
+        cursor.close()
+        conn.close()
         list = []
-        for i in listAux:
-            iaux = i.split(",")
-            list.append(tuple([iaux[0], iaux[1]]))
-        if results[0][1] * 10 + 10 >= len(list):
+        if len(results) > 0:
+            listAux = results[0][2].replace("[(", "").replace(")]", "").replace("'", "").split("), (")
+            for i in listAux:
+                iaux = i.split(",")
+                list.append(tuple([iaux[0], iaux[1]]))
+        if len(results) == 0 or results[0][1] * 10 + 10 >= len(list):
             bot.answer_callback_query(call.id, "Ya estás en la última página")
         else:
             pages = results[0][1] + 1
+            conn = connect_db()
+            cursor = conn.cursor()
             query = "UPDATE pagesdata SET page = " + str(pages) + " WHERE id = " + str(cid)
             cursor.execute(query)
             conn.commit()
-            show_pages(list, cid, pages, mid)
-        return
+            query = "SELECT * FROM pagesdata WHERE id = " + str(cid)
+            cursor.execute(query)
+            results = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            show_pages(results, cid, mid, bot)
 
 #Responder a los mensajes que no son comandos
 @bot.message_handler(content_types=["text"])
@@ -263,7 +324,7 @@ def bot_texts(message):
     if message.text and message.text.startswith("/"):
         bot.send_message(message.chat.id, "Comando no disponible.")
     else:
-        check_swear_words(message, bot, conn, cursor)
+        check_swear_words(message, bot)
 
 @bot.message_handler(content_types=["new_chat_members"])
 def bot_wellcome(message):
@@ -271,30 +332,36 @@ def bot_wellcome(message):
     text = ""
     newMembers = message.new_chat_members
     for member in newMembers:
-        if member.username == "None":
+        if member.username == None:
             text += "<b><u>BIENVENID@ " + member.first_name + "</u></b>\n"
-            text += "Por favor, añade un nombre de usuario a tu cuenta y avisa a un administrador cuando lo tengas para poder añadir tu cumpleaños, respeta a los miembros del grupo, crea un buen ambiente y modera tu lenguaje."
+            text += "Por favor, añade un nombre de usuario a tu cuenta. Cuando lo tengas, introducie el comando /register o /resgistrar para darte de alta.\n\nRespeta a los miembros del grupo, crea un buen ambiente y modera tu lenguaje."
         else:
             text += "<b><u>BIENVENID@ @" + member.username + "</u></b>\n"
             text += "Por favor, respeta a los miembros del grupo, crea un buen ambiente, modera tu lenguaje y no olvides añadir tu cumpleaños con el comando /nuevo o /add!"
             #LE AÑADIMOS A LA BASE DE DATOS EN LA TABLA DE USUARIOS AUTORIZADOS (USERNAMES)
             user = "@" + member.username
-            add_db (user, message.chat.id, conn, cursor)
+            add_db (user, message.chat.id)
             #Por si hubiera estado baneado anteriormente
+            conn = connect_db()
+            cursor = conn.cursor()
             query = "DELETE FROM bannedusers WHERE id = " + str(member.id)
             cursor.execute(query)
             conn.commit()
+            cursor.close()
+            conn.close()
         bot.send_message(message.chat.id, text, parse_mode = "html")
 
 @bot.message_handler(content_types=["left_chat_member"])
 def bot_goodbye(message):
     '''Despide a los miembros que abandonan el grupo'''
-    table = "usernames"
-    delete_db (message, table, conn, cursor)
-    table = "birthdaydata"
-    delete_db (message, table, conn, cursor)
-    table = "ranking"
-    delete_db (message, table, conn, cursor)
+    user = ""
+    if message.left_chat_member.username != None:
+        user = "@" + message.left_chat_member.username
+    else:
+        user = message.left_chat_member.first_name
+    delete_db (user, "usernames")
+    delete_db (user, "birthdaydata")
+    delete_db (user, "ranking")
 
 def receive_messages():
     '''Bucle infinito que comprueba si hay nuevos mensajes en el bot'''
@@ -303,38 +370,24 @@ def receive_messages():
 #MAIN
 if __name__ == "__main__":
     bot.set_my_commands([
-        telebot.types.BotCommand("/start", "da la bienvenida"),
         telebot.types.BotCommand("/iniciar", "da la bienvenida"),
-        telebot.types.BotCommand("/help", "muestra lista de comandos disponibles"),
-        telebot.types.BotCommand("/ayuda", "muestra lista de comandos disponibles"),
-        telebot.types.BotCommand("/register", "registra un nuevo nombre de usuario en la base de datos"),
+        telebot.types.BotCommand("/ayuda", "muestra la lista de comandos disponibles"),
         telebot.types.BotCommand("/registrar", "registra un nuevo nombre de usuario en la base de datos"),
-        telebot.types.BotCommand("/config", "configurar el texto y la foto del mensaje de cumpleaños"),
-        telebot.types.BotCommand("/configurar", "configurar el texto y la foto del mensaje de cumpleaños"),
-        telebot.types.BotCommand("/add", "añade cumpleaños"),
+        telebot.types.BotCommand("/configurar", "configurar el texto y la foto del mensaje de felicitación o de alerta"),
         telebot.types.BotCommand("/nuevo", "añade cumpleaños"),
-        telebot.types.BotCommand("/view", "muestra el cumpleaños del usuario"),
         telebot.types.BotCommand("/ver", "muestra el cumpleaños del usuario"),
-        telebot.types.BotCommand("/update", "actualiza el cumpleaños del usuario"),
         telebot.types.BotCommand("/actualizar", "actualiza el cumpleaños del usuario"),
-        telebot.types.BotCommand("/delete", "borrar un cumpleaños"),
         telebot.types.BotCommand("/borrar", "borrar un cumpleaños"),
-        telebot.types.BotCommand("/test", "ejemplo del mensaje de cumpleaños"),
         telebot.types.BotCommand("/probar", "ejemplo del mensaje de cumpleaños"),
-        telebot.types.BotCommand("/warnings", "muestra los avisos que tiene un usuario"),
         telebot.types.BotCommand("/avisos", "muestra los avisos que tiene un usuario"),
-        telebot.types.BotCommand("/unban", "comando para administrador, desbanea a un usuario"),
         telebot.types.BotCommand("/desbanear", "comando para administrador, desbanea a un usuario"),
-        telebot.types.BotCommand("/ranking", "ver el top 5 del juego del ahorcado"),
         telebot.types.BotCommand("/clasificacion", "ver el top 5 del juego del ahorcado"),
-        telebot.types.BotCommand("/hangman", "jugar al juego del ahorcado"),
         telebot.types.BotCommand("/ahorcado", "jugar al juego del ahorcado")
         ])
-    print("Iniciando el bot")
     bot_thread = threading.Thread(name = "bot_thread", target = receive_messages)
     bot_thread.start()
     print("Bot iniciado")
     startDate = (datetime.now() - timedelta(days = 1)).strftime("%d/%m")
-    birthdays_thread = threading.Thread(name = "birthdays_thread", target = verify_birthday, args = (startDate, bot, conn, cursor))
+    birthdays_thread = threading.Thread(name = "birthdays_thread", target = verify_birthday, args = (startDate, bot))
     birthdays_thread.start()
     print("Hilo cumples iniciado")
