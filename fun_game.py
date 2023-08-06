@@ -91,7 +91,8 @@ def play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message):
             conn.close()
         else:
             text += '\n' + '✰ Letras ya introducidas: ' + inputLetters + '\n'
-            text += '✰ Introduce una letra: '
+            text += '✰ Introduce una letra: ' + '\n\n'
+            text += '✰ Puedes escribir \'salir\' o \'exit\' para abandonar la partida.'
             newLetter = bot.send_message(message.from_user.id, text)
             bot.register_next_step_handler(newLetter, add_new_letter, lives, selectedWord, clue, inputLetters, bot, message)
 

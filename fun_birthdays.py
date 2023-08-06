@@ -2,7 +2,6 @@
 from config import *                        #Importamos el token y los id de grupo
 from fun_mod import *                       #Necesitaremos las funciones del listado con botones y conexión con base de datos
 import telebot                              #Para manejar la API de Telegram
-from telebot.types import ForceReply        #Para forzar respuestas a mensajes
 from datetime import *                      #Para el manejo de horas
 from time import sleep                      #Para dormir al hilo
 
@@ -99,9 +98,13 @@ def ask_date(message, bot, input):
         if message.text.lower() != "salir" and message.text.lower() != "exit":
             user = message.text
             if message.chat.type == "private":
+                conn = connect_db()
+                cursor = conn.cursor()
                 query = "SELECT * FROM birthdaydata WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
                 cursor.execute(query)
                 results = cursor.fetchall()
+                cursor.close()
+                conn.close()
                 if len(results) == 0:
                     input.append(user)
                     msg = bot.send_message(message.chat.id, "¿Cuándo es su cumpleaños?\n\nIndícalo en formato DD/MM.")
@@ -110,15 +113,23 @@ def ask_date(message, bot, input):
                     bot.send_message(message.chat.id, "El cumpleaños de este usuario ya lo tengo registrado.\n\nPara cambiarlo, usa el comando /actualizar o /update.")
             else:
                 if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+                    conn = connect_db()
+                    cursor = conn.cursor()
                     query = "SELECT * FROM usernames WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
                     cursor.execute(query)
                     results = cursor.fetchall()
+                    cursor.close()
+                    conn.close()
                     if len(results) == 0:
                         bot.send_message(message.chat.id, "Ese usuario no está registrado.\n\nPuedes registrarlo con el comando /register o /registrar.")
                     else:
+                        conn = connect_db()
+                        cursor = conn.cursor()
                         query = "SELECT * FROM birthdaydata WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
                         cursor.execute(query)
                         results = cursor.fetchall()
+                        cursor.close()
+                        conn.close()
                         if len(results) == 0:
                             input.append(user)
                             msg = bot.send_message(message.chat.id, "¿Cuándo es su cumpleaños?\n\nIndícalo en formato DD/MM.")
