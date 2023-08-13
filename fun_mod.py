@@ -9,11 +9,11 @@ import mysql.connector                          #Para la base de datos
 def connect_db():
     '''Abrimos conexión con la base de datos'''
     conn = mysql.connector.connect(
-        host="nearl-dev.com",
-        port="3306",
-        user="root",
-        password="i#G1zF6402e#",
-        database="bot_telegram"
+        host="NOMBRE DEL HOST",
+        port="PUERTO DEL HOST",
+        user="NOMBRE DEL USUARIO",
+        password="CONTRASEÑA",
+        database="NOMBRE DE LA BASE DE DATOS"
     )
     return conn
 
