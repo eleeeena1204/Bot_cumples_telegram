@@ -100,7 +100,8 @@ def play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message):
 def add_new_letter(newLetter, lives, selectedWord, clue, inputLetters, bot, message):
     '''Función para añadir iteración y seguir jugando'''
     text = ''
-    if newLetter.content_type == 'text':
+    if newLetter.content_type == "text":
+        check_swear_words(message, bot)
         if len(newLetter.text) == 1:
             if newLetter.text.lower() not in inputLetters:
                 inputLetters += newLetter.text.lower() + ", "
@@ -116,7 +117,7 @@ def add_new_letter(newLetter, lives, selectedWord, clue, inputLetters, bot, mess
                 play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message)
         else:
             if newLetter.text.lower() == "salir" or newLetter.text.lower() == "exit":
-                bot.send_message(message.chat.id, "Se ha cancelado la partida.")
+                bot.send_message(message.from_user.id, "Se ha cancelado la partida.")
             else:
                 text += '✰ Por favor, solo una letra en cada mensaje.' + '\n'
                 play_hangman(text, lives, selectedWord, clue, inputLetters, bot, message)
