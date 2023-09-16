@@ -6,22 +6,23 @@ from datetime import *                      #Para el manejo de horas
 from time import sleep                      #Para dormir al hilo
 
 #Funciones /config o /configurar --------------------------------------------------------------------------------------------------------
-def config(message, bot):
+def config(message, bot, user, cont):
     '''Dependiendo de la respuesta configuramos texto o foto'''
-    if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+    if message.from_user.id == user.id:
         if message.content_type == "text":
+            check_swear_words(message, bot)
             if message.text.lower() == "texto":
                 text = "Para configurar un mensaje bonito, puedes escribir el texto entre <b> y </b> se monstrará en negrita. Si lo escribes entre <u> y </u> se escribirá subrayado." + "\n\n"
-                text += "El texto:\n <b>Esto en negrita</b>\n<u>Esto subrayado</u>\nSe verá:"
+                text += "El texto:\n<b>Esto en negrita</b>\n<u>Esto subrayado</u>\nSe verá:"
                 bot.send_message(message.chat.id, text)
                 text = "<b>Esto en negrita</b>\n<u>Esto subrayado</u>"
                 bot.send_message(message.chat.id, text, parse_mode = "html")
-                bot.send_message(message.chat.id, "Por otro lado, si escribes '@', se sustituirá por el nombre o nombre de usuario de la persona que cumple años. Si escribes 'date', se sustituirá por la fecha. SSi escribes '\\n', tendrás un salto de línea en tu mensaje.")
+                bot.send_message(message.chat.id, "Por otro lado, si escribes '<b>@</b>', se sustituirá por el nombre o nombre de usuario de la persona que cumple años. Si escribes '<b>date</b>', se sustituirá por la fecha. Si escribes '<b>\\n</b>', tendrás un salto de línea en tu mensaje.")
                 msg = bot.send_message(message.chat.id, "Ahora escribe el texto que quieres que guarde.\n\nIntenta que no supere los 250 caracteres.\n\nPodrás cambiarlo ejecutando otra vez el comando /config o /configurar.\n\nSi quieres cancelar el proceso, escribe 'salir' o 'exit'.")
-                bot.register_next_step_handler(msg, save_text, bot)
+                bot.register_next_step_handler(msg, save_text, bot, user, 0)
             elif message.text.lower() == "foto":
-                msg = bot.send_message(message.chat.id, "Envíame una foto y la guardaré para que se adjunte al mensaje de felicidades el día que haya algún cumpleaños.")
-                bot.register_next_step_handler(msg, save_photo, bot)
+                msg = bot.send_message(message.chat.id, "Envíame una foto y la guardaré para que se adjunte al mensaje de felicidades el día que haya algún cumpleaños.\n\nPodrás cambiarla ejecutando otra vez el comando /config o /configurar.\n\nSi quieres cancelar el proceso, escribe 'salir' o 'exit'.")
+                bot.register_next_step_handler(msg, save_photo, bot, user, 0)
             elif message.text.lower() == "salir" or message.text.lower() == "exit":
                 bot.send_message(message.chat.id, "Proceso de configuración cancelado.")
             else:
@@ -29,13 +30,21 @@ def config(message, bot):
         else:
             bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
     else:
-        msg = bot.send_message(message.chat.id, "Acción solo disponible para los administradores del grupo.\n\nPor favor, no interrumpas el proceso.\n\nEl administrador puede continuar o escribir 'salir' o 'exit' para cancelar.")
-        bot.register_next_step_handler(msg, config, bot)
+        if cont == 9:
+            if user.username == None:
+                bot.send_message(message.chat.id, "Lo siento, " + user.first_name + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+            else:
+                bot.send_message(message.chat.id, "Lo siento, @" + user.username + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+        else:
+            if message.content_type == "text":
+                check_swear_words(message, bot)
+            bot.register_next_step_handler(message, config, bot, user, cont + 1)
 
-def save_text(message, bot):
+def save_text(message, bot, user, cont):
     '''Guardamos el texto en la base de datos'''
-    if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+    if message.from_user.id == user.id:
         if message.content_type == "text":
+            check_swear_words(message, bot)
             if message.text.lower() != "salir" and message.text.lower() != "exit":
                 if len(message.text) < 250:
                     conn = connect_db()
@@ -54,18 +63,25 @@ def save_text(message, bot):
                     bot.send_message(message.chat.id, "Texto de felicitación guardado.")
                 else:
                     msg = bot.send_message(message.chat.id, "El mensaje no puede superar los 250 caracteres.\n\nPuedes volver a intentarlo o escribir 'salir' o 'exit' para cancelar.")
-                    bot.register_next_step_handler(msg, save_text, bot)
+                    bot.register_next_step_handler(msg, save_text, bot, user, 0)
             else:
                 bot.send_message(message.chat.id, "Proceso de configuración cancelado.")
         else:
             bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
     else:
-        msg = bot.send_message(message.chat.id, "Acción solo disponible para los administradores del grupo.\n\nPor favor, no interrumpas el proceso.\n\nEl administrador puede continuar o escribir 'salir' o 'exit' para cancelar.")
-        bot.register_next_step_handler(msg, save_text, bot)
+        if cont == 9:
+            if user.username == None:
+                bot.send_message(message.chat.id, "Lo siento, " + user.first_name + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+            else:
+                bot.send_message(message.chat.id, "Lo siento, @" + user.username + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+        else:
+            if message.content_type == "text":
+                check_swear_words(message, bot)
+            bot.register_next_step_handler(message, save_text, bot, user, cont + 1)
 
-def save_photo(message, bot):
+def save_photo(message, bot, user, cont):
     '''Guardamos la foto en la base de datos'''
-    if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+    if message.from_user.id == user.id:
         if message.content_type == "photo":
             id = message.json["photo"][0]["file_id"]
             conn = connect_db()
@@ -88,34 +104,42 @@ def save_photo(message, bot):
             else:
                 bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
     else:
-        msg = bot.send_message(message.chat.id, "Acción solo disponible para los administradores del grupo.\n\nPor favor, no interrumpas el proceso.\n\nEl administrador puede continuar o escribir 'salir' o 'exit' para cancelar.")
-        bot.register_next_step_handler(msg, save_photo, bot)
+        if cont == 9:
+            if user.username == None:
+                bot.send_message(message.chat.id, "Lo siento, " + user.first_name + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+            else:
+                bot.send_message(message.chat.id, "Lo siento, @" + user.username + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+        else:
+            if message.content_type == "text":
+                check_swear_words(message, bot)
+            bot.register_next_step_handler(message, save_photo, bot, user, cont + 1)
 
 #Funciones /add o /nuevo --------------------------------------------------------------------------------------------------------
-def ask_date(message, bot, input):
+def ask_date(message, bot, input, user, cont):
     '''Preguntamos la fecha del cumpleaños'''
     if message.content_type == "text":
+        check_swear_words(message, bot)
         if message.text.lower() != "salir" and message.text.lower() != "exit":
-            user = message.text
+            username = message.text
             if message.chat.type == "private":
                 conn = connect_db()
                 cursor = conn.cursor()
-                query = "SELECT * FROM birthdaydata WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
+                query = "SELECT * FROM birthdaydata WHERE name like '" + username + "' and chatId = " + str(message.chat.id)
                 cursor.execute(query)
                 results = cursor.fetchall()
                 cursor.close()
                 conn.close()
                 if len(results) == 0:
-                    input.append(user)
+                    input.append(username)
                     msg = bot.send_message(message.chat.id, "¿Cuándo es su cumpleaños?\n\nIndícalo en formato DD/MM.")
-                    bot.register_next_step_handler(msg, new_birthday, bot, input)
+                    bot.register_next_step_handler(msg, new_birthday, bot, input, user, 0)
                 else:
                     bot.send_message(message.chat.id, "El cumpleaños de este usuario ya lo tengo registrado.\n\nPara cambiarlo, usa el comando /actualizar o /update.")
             else:
-                if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+                if message.from_user.id == user.id:
                     conn = connect_db()
                     cursor = conn.cursor()
-                    query = "SELECT * FROM usernames WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
+                    query = "SELECT * FROM usernames WHERE name like '" + username + "' and chatId = " + str(message.chat.id)
                     cursor.execute(query)
                     results = cursor.fetchall()
                     cursor.close()
@@ -125,83 +149,100 @@ def ask_date(message, bot, input):
                     else:
                         conn = connect_db()
                         cursor = conn.cursor()
-                        query = "SELECT * FROM birthdaydata WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
+                        query = "SELECT * FROM birthdaydata WHERE name like '" + username + "' and chatId = " + str(message.chat.id)
                         cursor.execute(query)
                         results = cursor.fetchall()
                         cursor.close()
                         conn.close()
                         if len(results) == 0:
-                            input.append(user)
+                            input.append(username)
                             msg = bot.send_message(message.chat.id, "¿Cuándo es su cumpleaños?\n\nIndícalo en formato DD/MM.")
-                            bot.register_next_step_handler(msg, new_birthday, bot, input)
+                            bot.register_next_step_handler(msg, new_birthday, bot, input, user, 0)
                         else:
                             bot.send_message(message.chat.id, "El cumpleaños de este usuario ya lo tengo registrado.\n\nPara cambiarlo, usa el comando /actualizar o /update.")
                 else:
-                    msg = bot.send_message(message.chat.id, "Acción solo disponible para los administradores del grupo.\n\nPor favor, no interrumpas el proceso.\n\nEl administrador puede continuar o escribir 'salir' o 'exit' para cancelar.")
-                    bot.register_next_step_handler(msg, ask_date, bot, input)
+                    if cont == 9:
+                        if user.username == None:
+                            bot.send_message(message.chat.id, "Lo siento, " + user.first_name + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+                        else:
+                            bot.send_message(message.chat.id, "Lo siento, @" + user.username + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+                    else:
+                        bot.register_next_step_handler(message, ask_date, bot, input, user, cont + 1)
         else:
             bot.send_message(message.chat.id, "Proceso de añadir cumpleaños cancelado.")
     else:
         bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
 
-def new_birthday(message, bot, input):
+def new_birthday(message, bot, input, user, cont):
     '''Comprobamos que la fecha está correctamente'''
-    if message.content_type == "text":
-        if message.text.lower() != "exit" and message.text.lower() != "salir":
-            date = message.text
-            divDate = date.split("/")
-            if len(divDate) == 2:
-                mes_31 = ["01", "1", "03", "3", "05", "5", "07", "7", "08", "8", "10", "12"]
-                if 1 <= int(divDate[1]) <= 12:
-                    if (divDate[1] == "02") or (divDate[1] == "2"):
-                        if 1 <= int(divDate[0]) <= 29:
-                            if len(divDate[0]) == 1 and len(divDate[1]) == 1:
-                                date = "0" + divDate[0] + "/0" + divDate[1]
-                            elif len(divDate[0]) == 1 and len(divDate[1]) == 2:
-                                date = "0" + date
-                            elif len(divDate[0]) == 2 and len(divDate[1]) == 1:
-                                date = divDate[0] + "/0" + divDate[1]
-                            input.append(date)
-                            save_birthday(message, bot, input)
+    if message.from_user.id == user.id:
+        if message.content_type == "text":
+            check_swear_words(message, bot)
+            if message.text.lower() != "exit" and message.text.lower() != "salir":
+                date = message.text
+                divDate = date.split("/")
+                if len(divDate) == 2:
+                    mes_31 = ["01", "1", "03", "3", "05", "5", "07", "7", "08", "8", "10", "12"]
+                    if 1 <= int(divDate[1]) <= 12:
+                        if (divDate[1] == "02") or (divDate[1] == "2"):
+                            if 1 <= int(divDate[0]) <= 29:
+                                if len(divDate[0]) == 1 and len(divDate[1]) == 1:
+                                    date = "0" + divDate[0] + "/0" + divDate[1]
+                                elif len(divDate[0]) == 1 and len(divDate[1]) == 2:
+                                    date = "0" + date
+                                elif len(divDate[0]) == 2 and len(divDate[1]) == 1:
+                                    date = divDate[0] + "/0" + divDate[1]
+                                input.append(date)
+                                save_birthday(message, bot, input)
+                            else:
+                                msg = bot.send_message(message.chat.id, "Febrero solo tiene 29 días.\n\nPor favor, introduce un día correcto o escribe 'salir' o 'exit' para cancelar.")
+                                bot.register_next_step_handler(msg, new_birthday, bot, input, user, 0)
+                        elif divDate[1] in mes_31:
+                            if 1 <= int(divDate[0]) <= 31:
+                                if len(divDate[0]) == 1 and len(divDate[1]) == 1:
+                                    date = "0" + divDate[0] + "/0" + divDate[1]
+                                elif len(divDate[0]) == 1 and len(divDate[1]) == 2:
+                                    date = "0" + date
+                                elif len(divDate[0]) == 2 and len(divDate[1]) == 1:
+                                    date = divDate[0] + "/0" + divDate[1]
+                                input.append(date)
+                                save_birthday(message, bot, input)
+                            else:
+                                msg = bot.send_message(message.chat.id, "El mes introducido solo tiene 31 días.\n\nPor favor, introduce un día correcto o escribe 'salir' o 'exit' para cancelar.")
+                                bot.register_next_step_handler(msg, new_birthday, bot, input, user, 0)
                         else:
-                            msg = bot.send_message(message.chat.id, "Febrero solo tiene 29 días.\n\nPor favor, introduce un día correcto o escribe 'salir' o 'exit' para cancelar.")
-                            bot.register_next_step_handler(msg, new_birthday, bot, input)
-                    elif divDate[1] in mes_31:
-                        if 1 <= int(divDate[0]) <= 31:
-                            if len(divDate[0]) == 1 and len(divDate[1]) == 1:
-                                date = "0" + divDate[0] + "/0" + divDate[1]
-                            elif len(divDate[0]) == 1 and len(divDate[1]) == 2:
-                                date = "0" + date
-                            elif len(divDate[0]) == 2 and len(divDate[1]) == 1:
-                                date = divDate[0] + "/0" + divDate[1]
-                            input.append(date)
-                            save_birthday(message, bot, input)
-                        else:
-                            msg = bot.send_message(message.chat.id, "El mes introducido solo tiene 31 días.\n\nPor favor, introduce un día correcto o escribe 'salir' o 'exit' para cancelar.")
-                            bot.register_next_step_handler(msg, new_birthday, bot, input)
+                            if 1 <= int(divDate[0]) <= 30:
+                                if len(divDate[0]) == 1 and len(divDate[1]) == 1:
+                                    date = "0" + divDate[0] + "/0" + divDate[1]
+                                elif len(divDate[0]) == 1 and len(divDate[1]) == 2:
+                                    date = "0" + date
+                                elif len(divDate[0]) == 2 and len(divDate[1]) == 1:
+                                    date = divDate[0] + "/0" + divDate[1]
+                                input.append(date)
+                                save_birthday(message, bot, input)
+                            else:
+                                msg = bot.send_message(message.chat.id, "El mes introducido solo tiene 30 días.\n\nPor favor, introduce un día correcto o escribe 'salir' o 'exit' para cancelar.")
+                                bot.register_next_step_handler(msg, new_birthday, bot, input, user, 0)
                     else:
-                        if 1 <= int(divDate[0]) <= 30:
-                            if len(divDate[0]) == 1 and len(divDate[1]) == 1:
-                                date = "0" + divDate[0] + "/0" + divDate[1]
-                            elif len(divDate[0]) == 1 and len(divDate[1]) == 2:
-                                date = "0" + date
-                            elif len(divDate[0]) == 2 and len(divDate[1]) == 1:
-                                date = divDate[0] + "/0" + divDate[1]
-                            input.append(date)
-                            save_birthday(message, bot, input)
-                        else:
-                            msg = bot.send_message(message.chat.id, "El mes introducido solo tiene 30 días.\n\nPor favor, introduce un día correcto o escribe 'salir' o 'exit' para cancelar.")
-                            bot.register_next_step_handler(msg, new_birthday, bot, input)
+                        msg = bot.send_message(message.chat.id, "Este mes no es válido.\n\nPor favor, introduce un mes válido o escribe 'salir' o 'exit' para cancelar.")
+                        bot.register_next_step_handler(msg, new_birthday, bot, input, user, 0)
                 else:
-                    msg = bot.send_message(message.chat.id, "Este mes no es válido.\n\nPor favor, introduce un mes válido o escribe 'salir' o 'exit' para cancelar.")
-                    bot.register_next_step_handler(msg, new_birthday, bot, input)
+                    msg = bot.send_message(message.chat.id, "Por favor, introduce la fecha en formato DD/MM o escribe 'salir' o 'exit' para cancelar.")
+                    bot.register_next_step_handler(msg, new_birthday, bot, input, user, 0)
             else:
-                msg = bot.send_message(message.chat.id, "Por favor, introduce la fecha en formato DD/MM o escribe 'salir' o 'exit' para cancelar.")
-                bot.register_next_step_handler(msg, new_birthday, bot, input)
+                bot.send_message(message.chat.id, "Proceso de añadir cumpleaños cancelado.")
         else:
-            bot.send_message(message.chat.id, "Proceso de añadir cumpleaños cancelado.")
+            bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
     else:
-        bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
+        if cont == 9:
+            if user.username == None:
+                bot.send_message(message.chat.id, "Lo siento, " + user.first_name + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+            else:
+                bot.send_message(message.chat.id, "Lo siento, @" + user.username + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+        else:
+            if message.content_type == "text":
+                check_swear_words(message, bot)
+            bot.register_next_step_handler(message, new_birthday, bot, input, user, cont + 1)
 
 def save_birthday(message, bot, input):
     '''Añadimos el cumpleaños a la base de datos'''
@@ -224,55 +265,68 @@ def save_birthday(message, bot, input):
     bot.send_message(message.chat.id, "Cumpleaños guardado.")
 
 #Función /view o /ver --------------------------------------------------------------------------------------------------------
-def show_birthday(message, bot):
+def show_birthday(message, bot, user, cont):
     '''Buscamos el usuario y lo mostramos por pantalla'''
-    if message.content_type == "text":
-        conn = connect_db()
-        cursor = conn.cursor()
-        if message.text.lower() == "todos":
-            query = "SELECT name, date FROM birthdaydata WHERE chatId = " + str(message.chat.id)
-            cursor.execute(query)
-            results =  cursor.fetchall()
-            if len(results) == 0:
-                bot.send_message(message.chat.id, "No hay cumpleaños guardados.\n\nPuedes añadirlos con el comando /add o /nuevo.")
-            else:
-                query = "SELECT * FROM pagesdata where id = " + str(message.chat.id)
+    if message.from_user.id == user.id:
+        if message.content_type == "text":
+            check_swear_words(message, bot)
+            conn = connect_db()
+            cursor = conn.cursor()
+            if message.text.lower() == "todos":
+                query = "SELECT name, date FROM birthdaydata WHERE chatId = " + str(message.chat.id)
                 cursor.execute(query)
-                results2 = cursor.fetchall()
-                if len(results2) == 0:
-                    query = "INSERT INTO pagesdata (id, page, list) VALUES (" + str(message.chat.id) + ", 0, \"" + str(results) + "\")"
+                results =  cursor.fetchall()
+                if len(results) == 0:
+                    bot.send_message(message.chat.id, "No hay cumpleaños guardados.\n\nPuedes añadirlos con el comando /add o /nuevo.")
                 else:
-                    query = "UPDATE pagesdata SET page = 0, list = \"" + str(results) + "\" WHERE id = " + str(message.chat.id)
-                cursor.execute(query)
-                conn.commit()
-                query = "SELECT * FROM pagesdata where id = " + str(message.chat.id)
-                cursor.execute(query)
-                results2 = cursor.fetchall()
-                show_pages(results2, message.chat.id, None, bot)
-        else:
-            user = message.text
-            query = "SELECT * FROM birthdaydata WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
-            cursor.execute(query)
-            results = cursor.fetchall()
-            if len(results) == 0:
-                bot.send_message(message.chat.id, "No tengo registrado el cumpleaños de este usuario.\n\nPuedes añadirlo con el comando /add o /nuevo.\n\nTambién puedes usar el comando /view o /ver e introduciendo 'todos', verás una lista de los cumpleaños almacenados.")
+                    query = "SELECT * FROM pagesdata where id = " + str(message.chat.id)
+                    cursor.execute(query)
+                    results2 = cursor.fetchall()
+                    if len(results2) == 0:
+                        query = "INSERT INTO pagesdata (id, page, list) VALUES (" + str(message.chat.id) + ", 0, \"" + str(results) + "\")"
+                    else:
+                        query = "UPDATE pagesdata SET page = 0, list = \"" + str(results) + "\" WHERE id = " + str(message.chat.id)
+                    cursor.execute(query)
+                    conn.commit()
+                    query = "SELECT * FROM pagesdata where id = " + str(message.chat.id)
+                    cursor.execute(query)
+                    results2 = cursor.fetchall()
+                    show_pages(results2, message.chat.id, None, bot)
             else:
-                bot.send_message(message.chat.id, "El cumpleaños de " + results[0][1] + " es el " + results[0][2] + ".")
-        cursor.close()
-        conn.close()
+                user = message.text
+                query = "SELECT * FROM birthdaydata WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
+                cursor.execute(query)
+                results = cursor.fetchall()
+                if len(results) == 0:
+                    bot.send_message(message.chat.id, "No tengo registrado el cumpleaños de este usuario.\n\nPuedes añadirlo con el comando /add o /nuevo.\n\nTambién puedes usar el comando /view o /ver e introduciendo 'todos', verás una lista de los cumpleaños almacenados.")
+                else:
+                    bot.send_message(message.chat.id, "El cumpleaños de " + results[0][1] + " es el " + results[0][2] + ".")
+            cursor.close()
+            conn.close()
+        else:
+            bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
     else:
-        bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
+        if cont == 9:
+            if user.username == None:
+                bot.send_message(message.chat.id, "Lo siento, " + user.first_name + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+            else:
+                bot.send_message(message.chat.id, "Lo siento, @" + user.username + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+        else:
+            if message.content_type == "text":
+                check_swear_words(message, bot)
+            bot.register_next_step_handler(message, show_birthday, bot, user, cont + 1)
 
 #Función /update o /actualizar --------------------------------------------------------------------------------------------------------
-def update_birthday(message, bot):
+def update_birthday(message, bot, user, cont):
     '''Actualizamos un cumpleaños existente'''
     if message.content_type == "text":
-        if (message.chat.type == "private") or (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
+        check_swear_words(message, bot)
+        if (message.chat.type == "private") or (message.from_user.id == user.id):
             if message.text.lower() != "exit" and message.text.lower() != "salir":
-                user = message.text
+                username = message.text
                 conn = connect_db()
                 cursor = conn.cursor()
-                query = "SELECT * FROM birthdaydata WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
+                query = "SELECT * FROM birthdaydata WHERE name like '" + username + "' and chatId = " + str(message.chat.id)
                 cursor.execute(query)
                 results = cursor.fetchall()
                 cursor.close()
@@ -281,60 +335,89 @@ def update_birthday(message, bot):
                     bot.send_message(message.chat.id, "No tengo registrado el cumpleaños de este usuario.\n\nPuedes añadirlo con el comando /add o /nuevo.\n\nTambién puedes usar el comando /view o /ver e introduciendo 'todos', verás una lista de los cumpleaños almacenados.")
                 else:
                     msg = bot.send_message(message.chat.id, "Por favor, introduce la fecha en formato DD/MM.")
-                    input = [user, "existe"]
-                    bot.register_next_step_handler(msg, new_birthday, bot, input)
+                    input = [username, "existe"]
+                    bot.register_next_step_handler(msg, new_birthday, bot, input, user, 0)
             else:
                 bot.send_message(message.chat.id, "Proceso de actualizar cumpleaños cancelado.")
         else:
-            msg = bot.send_message(message.chat.id, "Acción solo disponible para los administradores del grupo.\n\nPor favor, no interrumpas el proceso.\n\nEl administrador puede continuar o escribir 'salir' o 'exit' para cancelar.")
-            bot.register_next_step_handler(msg, update_birthday, bot)
+            if cont == 9:
+                if user.username == None:
+                    bot.send_message(message.chat.id, "Lo siento, " + user.first_name + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+                else:
+                    bot.send_message(message.chat.id, "Lo siento, @" + user.username + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+            else:
+                bot.register_next_step_handler(message, update_birthday, bot, user, cont + 1)
     else:
         bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
 
 #Función /delete o /borrar --------------------------------------------------------------------------------------------------------
-def delete_birthday(message, bot):
+def delete_birthday(message, bot, user, cont):
     '''Borramos de la lista el cumpleaños'''
-    if message.content_type == "text":
-        user = ''
-        if message.text.startswith("/"):
-            user = "@" + message.from_user.username
-        else:
-            user = message.text
-        conn = connect_db()
-        cursor = conn.cursor()
-        query = "SELECT * FROM birthdaydata WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
-        cursor.execute(query)
-        results = cursor.fetchall()
-        if len(results) == 0:
-            bot.send_message(message.chat.id, "No tengo registrado el cumpleaños de este usuario.\n\nTambién puedes usar el comando /view o /ver e introduciendo 'todos', verás una lista de los cumpleaños almacenados.")
-        else:
-            query = "DELETE FROM birthdaydata WHERE name like '" + user + "'"
+    if message.from_user.id == user.id:
+        if message.content_type == "text":
+            check_swear_words(message, bot)
+            username = ''
+            if message.text.startswith("/"):
+                username = "@" + message.from_user.username
+            else:
+                username = message.text
+            conn = connect_db()
+            cursor = conn.cursor()
+            query = "SELECT * FROM birthdaydata WHERE name like '" + username + "' and chatId = " + str(message.chat.id)
             cursor.execute(query)
-            conn.commit()
-            bot.send_message(message.chat.id, "Cumpleaños borrado.")
-        cursor.close()
-        conn.close()
+            results = cursor.fetchall()
+            if len(results) == 0:
+                bot.send_message(message.chat.id, "No tengo registrado el cumpleaños de este usuario.\n\nTambién puedes usar el comando /view o /ver e introduciendo 'todos', verás una lista de los cumpleaños almacenados.")
+            else:
+                query = "DELETE FROM birthdaydata WHERE name like '" + username + "'"
+                cursor.execute(query)
+                conn.commit()
+                bot.send_message(message.chat.id, "Cumpleaños borrado.")
+            cursor.close()
+            conn.close()
+        else:
+            bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
     else:
-        bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
+        if cont == 9:
+            if user.username == None:
+                bot.send_message(message.chat.id, "Lo siento, " + user.first_name + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+            else:
+                bot.send_message(message.chat.id, "Lo siento, @" + user.username + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+        else:
+            if message.content_type == "text":
+                check_swear_words(message, bot)
+            bot.register_next_step_handler(message, delete_birthday, bot, user, cont + 1)
 
 #Función /test o /probar --------------------------------------------------------------------------------------------------------
-def simulate_birthday(message, bot):
+def simulate_birthday(message, bot, user, cont):
     '''Simulamos como mostraria el mensaje de felicitación'''
-    if message.content_type == "text":
-        user = message.text
-        conn = connect_db()
-        cursor = conn.cursor()
-        query = "SELECT * FROM birthdaydata WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
-        cursor.execute(query)
-        results = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        if len(results) == 0:
-            bot.send_message(message.chat.id, "No tengo registrado el cumpleaños de este usuario.\n\nPuedes añadirlo con el comando /add o /nuevo.\n\nTambién puedes usar el comando /view o /ver e introduciendo 'todos', verás una lista de los cumpleaños almacenados.")
+    if message.from_user.id == user.id:
+        if message.content_type == "text":
+            check_swear_words(message, bot)
+            user = message.text
+            conn = connect_db()
+            cursor = conn.cursor()
+            query = "SELECT * FROM birthdaydata WHERE name like '" + user + "' and chatId = " + str(message.chat.id)
+            cursor.execute(query)
+            results = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            if len(results) == 0:
+                bot.send_message(message.chat.id, "No tengo registrado el cumpleaños de este usuario.\n\nPuedes añadirlo con el comando /add o /nuevo.\n\nTambién puedes usar el comando /view o /ver e introduciendo 'todos', verás una lista de los cumpleaños almacenados.")
+            else:
+                happy_birthday(results[0], bot)
         else:
-            happy_birthday(results[0], bot)
+            bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
     else:
-        bot.send_message(message.chat.id, "Vaya, esto no es lo que esperaba...")
+        if cont == 9:
+            if user.username == None:
+                bot.send_message(message.chat.id, "Lo siento, " + user.first_name + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+            else:
+                bot.send_message(message.chat.id, "Lo siento, @" + user.username + ", no he podido finalizar el proceso debido a que has tardado muchos mensajes en responder, vuelve a intentarlo cuando quieras.")
+        else:
+            if message.content_type == "text":
+                check_swear_words(message, bot)
+            bot.register_next_step_handler(message, simulate_birthday, bot, user, cont + 1)
 
 #Función de felicitar para simular y comprobar --------------------------------------------------------------------------------------------------------
 def happy_birthday(i, bot):
