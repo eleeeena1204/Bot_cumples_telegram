@@ -57,7 +57,7 @@ def cmd_register(message):
     else:
         if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
             msg = bot.send_message(message.chat.id, "¿A qué usuario quieres registrar?\n\nIndica el nombre de usuario con su @.")
-            bot.register_next_step_handler(msg, register_user, bot)
+            bot.register_next_step_handler(msg, register_user, bot, message.from_user, 0)
         else:
             if message.from_user.username == None:
                 bot.send_message(message.chat.id, "Para usar este comando necesitas añadir un nombre de usuario en tu perfil.")
@@ -72,7 +72,7 @@ def cmd_config(message):
     else:
         if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
             msg = bot.send_message(message.chat.id, "Puedes configurar el mensaje y la foto del mensaje que se mostrará cuando envíe el mensaje de felicitación o de alerta.\n\n¿Quieres personalizar la foto o el texto?\n\nExcribe 'foto' o 'texto'.\n\nPara cancelar, escribe 'salir' o 'exit'.")
-            bot.register_next_step_handler(msg, config, bot)
+            bot.register_next_step_handler(msg, config, bot, message.from_user, 0)
         else:
             bot.send_message(message.chat.id, "Comando solo disponible para los administradores.")
 
@@ -82,11 +82,11 @@ def cmd_add(message):
     input = []
     if message.chat.type == "private":
         msg = bot.send_message(message.chat.id, "Al ser un chat privado, actuaré en modo de alertas personales mediante este chat.\n\n¿De quién quieres que guarde el cumpleaños?")
-        bot.register_next_step_handler(msg, ask_date, bot, input)
+        bot.register_next_step_handler(msg, ask_date, bot, input, message.from_user, 0)
     else:
         if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
             msg = bot.send_message(message.chat.id, "¿De qué usuario quieres añadir el cumpleaños?\n\nIndica el nombre de usuario con su @.")
-            bot.register_next_step_handler(msg, ask_date, bot, input)
+            bot.register_next_step_handler(msg, ask_date, bot, input, message.from_user, 0)
         else:
             if message.from_user.username == None:
                 bot.send_message(message.chat.id, "Para usar este comando necesitas añadir un nombre de usuario en tu perfil.")
@@ -113,7 +113,7 @@ def cmd_add(message):
                     user = "@" + message.from_user.username
                     input.append(user)
                     msg = bot.send_message(message.chat.id, "¿Cuándo es tu cumpleaños?\n\nIndícalo en formato DD/MM.")
-                    bot.register_next_step_handler(msg, new_birthday, bot, input)
+                    bot.register_next_step_handler(msg, new_birthday, bot, input, message.from_user, 0)
                 else:
                     bot.send_message(message.chat.id, "Ya tienes tu cumpleaños registrado.\n\nPara verlo, usa el comando /view o /ver.\n\nPara cambiarlo, usa el comando /update o /configurar.")
 
@@ -124,18 +124,18 @@ def cmd_view(message):
         msg = bot.send_message(message.chat.id, "¿De quién quieres ver el cumpleaños?\n\nDime el nombre con el que lo guardaste.\n\nSi quieres ver la lista completa, introduce 'todos'.")
     else:
         msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver cuándo es su cumpleaños?\n\nIndica el nombre de usuario con su @.\n\nSi quieres ver la lista completa introduce 'todos'.")
-    bot.register_next_step_handler(msg, show_birthday, bot)
+    bot.register_next_step_handler(msg, show_birthday, bot, message.from_user, 0)
 
 @bot.message_handler(commands=["update", "actualizar"])
 def cmd_update(message):
     '''Actualizar un cumpleaños'''
     if message.chat.type == "private":
         msg = bot.send_message(message.chat.id, "¿De quién quieres actualizar el cumpleaños?\n\nDime el nombre con el que lo guardaste.")
-        bot.register_next_step_handler(msg, update_birthday, bot)
+        bot.register_next_step_handler(msg, update_birthday, bot, message.from_user, 0)
     else:
         if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
             msg = bot.send_message(message.chat.id, "¿De qué usuario quieres actualizar el cumpleaños?\n\nIndica el nombre de usuario con su @.")
-            bot.register_next_step_handler(msg, update_birthday, bot)
+            bot.register_next_step_handler(msg, update_birthday, bot, message.from_user, 0)
         else:
             if message.from_user.username == None:
                 bot.send_message(message.chat.id, "Para usar este comando necesitas añadir un nombre de usuario en tu perfil.")
@@ -152,18 +152,18 @@ def cmd_update(message):
                 else:
                     msg = bot.send_message(message.chat.id, "Por favor, introduce la fecha en formato DD/MM.")
                     input = ["@" + message.from_user.username, "existe"]
-                    bot.register_next_step_handler(msg, new_birthday, bot, input)
+                    bot.register_next_step_handler(msg, new_birthday, bot, input, message.from_user, 0)
 
 @bot.message_handler(commands=["delete", "borrar"])
 def cmd_delete(message):
     '''Borrar un cumpleaños'''
     if message.chat.type == "private":
         msg = bot.send_message(message.chat.id, "¿De quién quieres borrar el cumpleaños?\n\nDime el nombre con el que lo guardaste.")
-        bot.register_next_step_handler(msg, delete_birthday, bot)
+        bot.register_next_step_handler(msg, delete_birthday, bot, message.from_user, 0)
     else:
         if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
             msg = bot.send_message(message.chat.id, "¿De qué usuario quieres borrar el cumpleaños?\n\nIndica el nombre de usuario con su @.")
-            bot.register_next_step_handler(msg, delete_birthday, bot)
+            bot.register_next_step_handler(msg, delete_birthday, bot, message.from_user, 0)
         else:
             if message.from_user.username == None:
                 bot.send_message(message.chat.id, "Para usar este comando necesitas añadir un nombre de usuario en tu perfil.")
@@ -178,7 +178,7 @@ def cmd_delete(message):
                 if len(results) == 0:
                     bot.send_message(message.chat.id, "No tienes tu cumpleaños guardado, así que no hace falta borrarlo.")
                 else:
-                    delete_birthday(message, bot)
+                    delete_birthday(message, bot, message.from_user, 0)
 
 @bot.message_handler(commands=["test", "probar"])    
 def cmd_test(message):
@@ -188,7 +188,7 @@ def cmd_test(message):
     else:
         if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
             msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver un simulacro de felicitación?\n\nIndica el nombre de usuario con su @.")
-            bot.register_next_step_handler(msg, simulate_birthday, bot)
+            bot.register_next_step_handler(msg, simulate_birthday, bot, message.from_user, 0)
         else:
             bot.send_message(message.chat.id, "Comando solo disponible para los administradores.")
 
@@ -200,7 +200,7 @@ def cmd_warnings(message):
     else:
         if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
             msg = bot.send_message(message.chat.id, "¿De qué usuario quieres ver cuántos avisos tiene?\n\nIndica el nombre de usuario con su @.\n\nSi no tiene nombre de usuario, introduce su nombre principal.\n\nSi quieres ver la lista completa, introduce 'todos'.")
-            bot.register_next_step_handler(msg, show_warnings, bot)
+            bot.register_next_step_handler(msg, show_warnings, bot, message.from_user, 0)
         else:
             bot.send_message(message.chat.id, "Comando solo disponible para los administradores.")
 
@@ -212,7 +212,7 @@ def cmd_unban(message):
     else:
         if (bot.get_chat_member(message.chat.id, message.from_user.id).status in ["creator", "administrator"]) or (message.chat.id == MY_CHAT_ID):
             msg = bot.send_message(message.chat.id, "¿A qué usuario quieres desbanear?\n\nIndica el nombre de usuario con su @.\n\nSi no tiene nombre de usuario, introduce su nombre principal.\n\nSi quieres ver la lista completa, introduce 'todos'.")
-            bot.register_next_step_handler(msg, unban_user, bot)
+            bot.register_next_step_handler(msg, unban_user, bot, message.from_user, 0)
         else:
             bot.send_message(message.chat.id, "Comando solo disponible para los administradores del grupo.")
 
