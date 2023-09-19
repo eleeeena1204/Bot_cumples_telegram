@@ -12,7 +12,7 @@ Para su correcta ejecución han de realizarse un par de modificaciones en los si
 ## Creación de la base de datos
 Por otro lado, también ha de construirse una base de datos SQL con la correspondiente estructura para que las consultas se puedan llevar a cabo de manera adecuada:
 
-
+![Imagen del diagrama entidad relación que debe seguir la base de datos](https://github.com/eleeeena1204/Bot_cumples_telegram/blob/main/Diagrama%20entidad%20relación.png)
 
 Las únicas tablas que deben tener contenido previo son *swearwords* y *hangmanwords*, ya que son bancos de palabras. El primero debe contener aquellas palabras que se consideren inapropiadas y que, si un usuario de un grupo las escribe, recibirá hasta dos avisos y, al tercero, será baneado del grupo. En la segunda tabla deben añadirse las posibles palabras ocultas para el juego del ahorcado.
 
