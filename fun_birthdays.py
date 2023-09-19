@@ -493,5 +493,11 @@ def verify_birthday(startDate, bot):
         cursor.close()
         conn.close()
     else:
-        sleep(86400)
+        if datetime.now().strftime("%H:%M") == "00:00":
+            sleep(86400)
+        else:
+            hora_actual = datetime.now().time()
+            medianoche = datetime(datetime.now().year, datetime.now().month, datetime.now().day + 1, 0, 0, 0)  
+            diferencia = medianoche - datetime.now()
+            sleep(diferencia.total_seconds())
     verify_birthday(today, bot)
